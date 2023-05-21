@@ -2,26 +2,14 @@ import { toRefs } from 'vue';
 <template>
 	<div class="layout-tabular">
 		<v-table
+		  	:showResize="true"
 			ref="table"
-			class="table"
-			show-resize
-			must-sort
+			v-model="selectionWritable"
+			:headers="tableHeadersWritable"
+			:loading="loading"
 			:items="items"
-			selection-use-keys
-		>
-			<!-- <template v-for="header in tableHeaders" :key="header.value" #[`item.${header.value}`]="{ item }">
-				<render-display
-					:value="getFromAliasedItem(item, header.value)"
-					:display="header.field.display"
-					:options="header.field.displayOptions"
-					:interface="header.field.interface"
-					:interface-options="header.field.interfaceOptions"
-					:type="header.field.type"
-					:collection="header.field.collection"
-					:field="header.field.field"
-				/>
-			</template> -->
-
+		  >
+		  <!-- @click:row="onRowClick" -->
 		</v-table>
 	</div>
 </template>
@@ -29,19 +17,27 @@ import { toRefs } from 'vue';
 <script setup lang="ts">
 	import { toRefs } from 'vue';
 	import { Item } from '@directus/types';
-import { useCollection, useStores } from '@directus/extensions-sdk';
+import { useCollection, useStores, useSync } from '@directus/extensions-sdk';
 
 	interface Props {
 		collection: string;
 		items: Item[];
-		tableHeaders: any[];
+		selection?: Item[];
+		tableHeaders: any;
+		loading: boolean,
 	}
 
-	const props = withDefaults(defineProps<Props>(), {});
+	const props = withDefaults(defineProps<Props>(), {
+		selection: () => [],
+	});
+	const emit = defineEmits(['update:selection', 'update:tableHeaders', 'update:limit', 'update:fields']);
 
-	const { collection } = toRefs(props);
-
+	const { collection, tableHeaders } = toRefs(props);
+	const tableHeadersWritable = useSync(props, 'tableHeaders', emit);
+	const selectionWritable = useSync(props, 'selection', emit);
 	console.log('<--------------- JK Layout --------------->');
+	console.log({tableHeaders});
+	console.log(tableHeaders.value);
 	const { useCollectionsStore } = useStores();
 	console.log(useStores());
 	console.log(useCollectionsStore());
