@@ -7,6 +7,7 @@ import { Field, Item } from '@directus/types';
 import { useRouter } from 'vue-router';
 
 import { getDefaultDisplayForType } from './utils/get-default-display-for-type';
+import { formatCollectionItemsCount } from './utils/format-collection-items-count';
 export default defineLayout({
 	id: 'test_lay',
 	name: 'Test lay',
@@ -61,6 +62,10 @@ export default defineLayout({
 		console.log('<--------------- JK Index --------------->');
 		console.log(items);
 		console.log({tableHeaders});
+		const showingCount = computed(() => {
+			const filtering = Boolean((itemCount.value || 0) < (totalCount.value || 0) && filterUser.value);
+			return formatCollectionItemsCount(itemCount.value || 0, page.value, limit.value, filtering);
+		});
 		return { 
 			items, 
 			totalPages,
@@ -73,7 +78,9 @@ export default defineLayout({
 			itemCount,
 			search,
 			toPage,
-			limit
+			limit,
+			showingCount,
+			fields
 		};
 		
 		function useItemOptions() {

@@ -17,7 +17,43 @@
 			selection-use-keys
 		  >
 
-		  <template #footer>
+		  <template v-for="header in tableHeaders" #[`item.${header.value}`]="{ item }">
+				<render-display
+					:key="header.value"
+					:value="getFromAliasedItem(item, header.value)"
+					:display="header.field.display"
+					:options="header.field.displayOptions"
+					:interface="header.field.interface"
+					:interface-options="header.field.interfaceOptions"
+					:type="header.field.type"
+					:collection="header.field.collection"
+					:field="header.field.field"
+				/>
+			</template>
+
+			<template #header-append>
+				<v-menu placement="bottom-end" show-arrow :close-on-content-click="false">
+					<template #activator="{ toggle, active }">
+						<v-icon
+							v-tooltip="t('add_field')"
+							class="add-field"
+							name="add"
+							:class="{ active }"
+							clickable
+							@click="toggle"
+						/>
+					</template>
+
+					<v-field-list
+						:collection="collection"
+						:disabled-fields="fields"
+						:allow-select-all="false"
+						@add="addField($event[0])"
+					/>
+				</v-menu>
+			</template>
+
+		  	<template #footer>
 				<div class="footer">
 					<div class="pagination">
 						<v-pagination
@@ -53,10 +89,11 @@ export default {
 };
 </script>
 <script setup lang="ts">
-	import { ComponentPublicInstance, ref, toRefs } from 'vue';
+	import { ComponentPublicInstance, inject, ref, toRefs, watch, Ref } from 'vue';
 	import { Item, ShowSelect, Field, Filter } from '@directus/types';
 	import { useCollection, useStores, useSync } from '@directus/extensions-sdk';
 	import { usePageSize } from './composables/use-page-size';
+	import { useAliasFields } from './composables/use-alias-fields';
 	// @ts-ignore
 	import { useI18n } from 'vue-i18n';
 	interface Props {
@@ -71,6 +108,7 @@ export default {
 		primaryKeyField?: Field;
 		onRowClick: (item: Item) => void;
 		itemCount?: number;
+		fields: string[];
 		filterUser?: Filter;
 		search?: string;
 		totalPages: number;
@@ -94,6 +132,8 @@ export default {
 	const selectionWritable = useSync(props, 'selection', emit);
 	const limitWritable: any = useSync(props, 'limit', emit);
 
+	const fieldsWritable: any = useSync(props, 'fields', emit);
+	const { getFromAliasedItem } = useAliasFields(fieldsWritable, collection);
 
 	const { sizes: pageSizes, selected: selectedSize } = usePageSize<string>(
 		[25, 50, 100, 250, 500, 1000],
@@ -101,5 +141,22 @@ export default {
 		props.limit
 	);
 	limitWritable.value = selectedSize;
-	console.log('<--------------- JK Layout --------------->');
+	const mainElement = inject<Ref<Element | undefined>>('main-element');
+	watch(
+		() => props.page,
+		() => mainElement?.value?.scrollTo({ top: 0, behavior: 'smooth' })
+	);
+	
+	console.log(props.fields);
+	
+	function addField(fieldKey: string) {
+		console.log('<--------------- JK Layout --------------->');
+		console.log({fieldsWritable, fieldKey});
+		const values = fieldsWritable.value ?? [];
+		values.push( fieldKey )
+		console.log( values );
+		fieldsWritable.value = values;
+		console.log('<--------------- JK Layout --------------->');
+		console.log(fieldsWritable.value);
+	}
 </script>
