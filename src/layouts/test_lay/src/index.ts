@@ -2,7 +2,9 @@ import { computed, ref, toRefs, watch } from 'vue';
 import { defineLayout, useCollection, useItems, useStores, useSync } from '@directus/extensions-sdk';
 import LayoutComponent from './layout.vue';
 import { syncRefProperty } from './utils/sync-ref-property';
-import { Field } from '@directus/types';
+import { Field, Item } from '@directus/types';
+// @ts-ignore
+import { useRouter } from 'vue-router';
 
 import { getDefaultDisplayForType } from './utils/get-default-display-for-type';
 export default defineLayout({
@@ -16,8 +18,13 @@ export default defineLayout({
 		actions: () => null,
 	},
 	setup(props, { emit }) {
+
+
+		const selection = useSync(props, 'selection', emit);
 		const layoutQuery: any = useSync(props, 'layoutQuery', emit);
 		const layoutOptions: any = useSync(props, 'layoutOptions', emit);
+		const router = useRouter();
+
 		const {useFieldsStore} = useStores();
 		const fieldsStore = useFieldsStore();
 		const { collection, filter, filterUser, search } = toRefs(props);
@@ -54,7 +61,20 @@ export default defineLayout({
 		console.log('<--------------- JK Index --------------->');
 		console.log(items);
 		console.log({tableHeaders});
-		return { items, loading, tableHeaders };
+		return { 
+			items, 
+			totalPages,
+			page,
+			loading, 
+			error,
+			tableHeaders, 
+			primaryKeyField,
+			onRowClick,
+			itemCount,
+			search,
+			toPage,
+			limit
+		};
 		
 		function useItemOptions() {
 			const page = syncRefProperty<any, any>(layoutQuery, 'page'  , 1);
@@ -173,6 +193,27 @@ export default defineLayout({
 				tableRowHeight,
 				activeFields,
 			};
+		}
+		function onRowClick({ item, event }: { item: Item; event: PointerEvent }) {
+			if (props.readonly === true || !primaryKeyField.value) return;
+
+			const primaryKey = item[primaryKeyField.value.field];
+
+			if (props.selectMode || selection.value?.length > 0) {
+				if (selection.value?.includes(primaryKey) === false) {
+					selection.value = selection.value.concat(primaryKey);
+				} else {
+					selection.value = selection.value.filter((item) => item !== primaryKey);
+				}
+			} else {
+				const next = router.resolve(`/content/${collection.value}/${encodeURIComponent(primaryKey)}`);
+
+				if (event.ctrlKey || event.metaKey) window.open(next.href, '_blank');
+				else router.push(next);
+			}
+		}
+		function toPage(newPage: number) {
+			page.value = newPage;
 		}
 	}
 });
